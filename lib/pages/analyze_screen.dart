@@ -59,6 +59,7 @@ class _AnalyzeScreenState extends State<AnalyzeScreen> {
     startTime = DateTime.now();
 
     final lines = await _readFileLines();
+
     final chunkedLines = _chunkList(lines, batchSize);
 
     final results = await _processChunksInParallel(chunkedLines);
@@ -81,6 +82,7 @@ class _AnalyzeScreenState extends State<AnalyzeScreen> {
     final elapsedTime = endTime.difference(startTime).inMilliseconds / 1000.0;
 
     setState(() {
+      //linesRead = lines.length;
       isAnalyzing = false;
       progress = 1.0;
       readSpeed = elapsedTime > 0 ? fileSize / 1024 / elapsedTime : 0.0;
@@ -111,11 +113,18 @@ class _AnalyzeScreenState extends State<AnalyzeScreen> {
   Future<List<Map<String, dynamic>>> _processChunksInParallel(
       List<List<String>> chunks) async {
     final results = <Map<String, dynamic>>[];
+    final chunkCount = chunks.length;
 
-    await Future.wait(chunks.map((chunk) async {
-      final result = await _processChunkInIsolate(chunk);
+    for (int i = 0; i < chunkCount; i++) {
+      final result = await _processChunkInIsolate(chunks[i]);
       results.add(result);
-    }));
+
+      // Actualizar el progreso y las líneas procesadas
+      setState(() {
+        linesRead += chunks[i].length;
+        progress = linesRead / fileSize;
+      });
+    }
 
     return results;
   }
